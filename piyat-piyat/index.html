@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>HTML 5 Boilerplate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        .shuffle-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 999; /* Adjust the z-index as needed */
+        }
+
+        .shuffle-animation img {
+            width: 200px; /* Adjust the width and height based on your gif dimensions */
+            height: auto;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Adjust the opacity as needed */
+            z-index: 998; /* Adjust the z-index to be below the modal content */
+        }
+
+        .playing-card {
+            /* Your existing styles for playing-card */
+
+            /* Add a CSS class for the card animation */
+            transition: transform 1s ease-out;
+        }
+
+        .card-dealing {
+            transform: translateY(-100vh) rotate(720deg); /* Adjust the transformation as needed */
+        }
+    </style>
+
+</head>
+<body>
+<div id="app">
+    <div class="p-4">
+        <div class="flex justify-between">
+            <div class="flex space-x-2">
+                <div class="flex items-center">
+                    <input type="checkbox" id="allowSwap" class="form-checkbox h-5 w-5 text-blue-500 rounded-md" v-model="game.allowPlayerSwapCards">
+                    <label for="allowSwap" class="ml-2 text-gray-700">Allow players to swap cards</label>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button @click.prevent="game.restart()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Deal Cards
+                </button>
+                <button @click.prevent="game.declareWinner()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Declare Winner
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4 pt-10 px-4">
+        <div
+            v-for="player in game.players"
+            class="bg-white p-4 border-2 rounded shadow"
+        >
+            <div class="flex justify-between">
+                <h2 class="text-xl font-semibold mb-2">{{ player.name }}</h2>
+                <h2 v-if="player.hasCrackHand" class="text-xl font-semibold mb-2">SULI</h2>
+                <h2 v-if="player.isWinner" class="text-xl font-semibold mb-2">DAOG</h2>
+                <h2 v-if="!game.isShuffling && !game.isDealingCards" class="text-xl font-semibold mb-2">{{ Hand.evaluate(player.hand.head, player.hand.body, player.hand.tail).name }}</h2>
+            </div>
+            <div
+                class="mt-4 bg-gray-300 p-4 rounded shadow"
+                :class="{'bg-red-400': player.hasCrackHand, 'bg-green-400': player.isWinner}"
+            >
+                <div class="flex flex-wrap">
+                    <div class="bg-gray-800 text-white flex items-center justify-center border border-gray-300 rounded-md shadow-md p-4 w-32 h-32 text-center">
+                        <div v-if="!game.isShuffling && !game.isDealingCards" class="flex space-x-2 items-center justify-center">
+                            <span
+                                v-if="player.hasValidHead()"
+                                class="text-xs flex items-center justify-center h-6 w-6 bg-green-500 rounded-full p-2"
+                            >
+                                <i class="fas fa-check text-white"></i>
+                            </span>
+                            <span
+                                v-else
+                                class="text-xs flex items-center justify-center h-6 w-6 bg-red-500 rounded-full p-2"
+                            >
+                                <i class="fas fa-times text-white"></i>
+                            </span>
+                            <span>
+                                {{ Ranker2.evaluate(player.hand.head, gameRules.head).name }}
+                            </span>
+                        </div>
+                    </div>
+                    <playing-card
+                        v-for="card in player.hand.head"
+                        :key="player.id + card.value + card.suit.name"
+                        :value="card.value"
+                        :suit="card.suit"
+                        :card="card"
+                        :owner="player"
+                    ></playing-card>
+<!--                    <div class="flex items-center justify-center p-4 w-24 h-32 text-center">-->
+<!--                        {{ player.points.head }}-->
+<!--                    </div>-->
+                </div>
+                <div class="flex flex-wrap">
+                    <div class="bg-gray-800 text-white flex items-center justify-center border border-gray-300 rounded-md shadow-md p-4 w-32 h-32 text-center">
+                        <div v-if="!game.isShuffling && !game.isDealingCards" class="flex space-x-2 items-center justify-center">
+                            <span
+                                v-if="player.hasValidBody()"
+                                class="text-xs flex items-center justify-center h-6 w-6 bg-green-500 rounded-full p-2"
+                            >
+                                <i class="fas fa-check text-white"></i>
+                            </span>
+                            <span
+                                v-else
+                                class="text-xs flex items-center justify-center h-6 w-6 bg-red-500 rounded-full p-2"
+                            >
+                                <i class="fas fa-times text-white"></i>
+                            </span>
+                            <span>
+                                {{ Ranker2.evaluate(player.hand.body, gameRules.body).name }}
+                            </span>
+                        </div>
+                    </div>
+                    <playing-card
+                        v-for="card in player.hand.body"
+                        :key="player.id + card.value + card.suit.name"
+                        :value="card.value"
+                        :suit="card.suit"
+                        :card="card"
+                        :owner="player"
+                    ></playing-card>
+<!--                    <div class="flex items-center justify-center p-4 w-24 h-32 text-center">-->
+<!--                        {{ player.points.body }}-->
+<!--                    </div>-->
+                </div>
+                <div class="flex flex-wrap">
+                    <div class="bg-gray-800 text-white flex items-center justify-center border border-gray-300 rounded-md shadow-md p-4 w-32 h-32 text-center">
+                        <div v-if="!game.isShuffling && !game.isDealingCards" class="flex space-x-2 items-center justify-center">
+                            <span
+                                v-if="player.hasValidTail()"
+                                class="text-xs flex items-center justify-center h-6 w-6 bg-green-500 rounded-full p-2"
+                            >
+                                <i class="fas fa-check text-white"></i>
+                            </span>
+                            <span
+                                v-else
+                                class="text-xs flex items-center justify-center h-6 w-6 bg-red-500 rounded-full p-2"
+                            >
+                                <i class="fas fa-times text-white"></i>
+                            </span>
+                            <span>
+                                {{ Ranker2.evaluate(player.hand.tail, gameRules.tail).name }}
+                            </span>
+                        </div>
+                    </div>
+                    <playing-card
+                        v-for="card in player.hand.tail"
+                        :key="player.id + card.value + card.suit.name"
+                        :value="card.value"
+                        :suit="card.suit"
+                        :card="card"
+                        :owner="player"
+                    ></playing-card>
+<!--                    <div class="flex items-center justify-center p-4 w-24 h-32 text-center">-->
+<!--                        {{ player.points.tail }}-->
+<!--                    </div>-->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div v-if="game.isShuffling" class="modal-overlay"></div>
+
+    <div v-if="game.isShuffling" class="shuffle-animation">
+        <img src="https://media.tenor.com/7feFpn2OST4AAAAM/card-spring-playing-cards.gif" alt="Shuffling Cards">
+    </div>
+
+    <div class="p-4">
+        <h2 class="text-xl font-semibold mb-2">Logs</h2>
+        <div v-for="(log, index) in game.logs" :key="index" class="p-5 mb-4 border rounded-lg bg-gray-800 border-gray-700 text-white">
+            <div class="text-lg font-semibold">Round {{ log.round }}</div>
+            <div class="mt-3">
+                <div class="p-4">
+                    <div class="font-semibold mb-2">Qualified Players:</div>
+                    <div class="grid grid-cols-4 gap-4">
+                        <div
+                                v-for="(player, playerIndex) in log.qualifiedPlayers" :key="playerIndex"
+                                class="p-4 border-2 rounded shadow"
+                        >
+                            <h2>{{ player. name }}</h2>
+                            <p>Head Points: {{ player.points.head }}</p>
+                            <p>Body Points: {{ player.points.body }}</p>
+                            <p>Tail Points: {{ player.points.tail }}</p>
+                            <p>Overall: {{ player.points.overall }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="log.winners.length" class="p-4">
+                    <div class="font-semibold mb-2">Winners:</div>
+                    <div class="grid grid-cols-4 gap-4">
+                        <div
+                                v-for="(player, playerIndex) in log.winners" :key="playerIndex"
+                                class="p-4 border-2 rounded shadow"
+                        >
+                            <h2>{{ player. name }}</h2>
+                            <p>Head Points: {{ player.points.head }}</p>
+                            <p>Body Points: {{ player.points.body }}</p>
+                            <p>Tail Points: {{ player.points.tail }}</p>
+                            <p>Overall: {{ player.points.overall }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/card.js"></script>
+<script src="js/hand.js"></script>
+<script src="js/game.js"></script>
+<!--<script src="js/components/PlayingCard.vue"></script>-->
+<script src="js/main.js"></script>
+
+</body>
+</html>
