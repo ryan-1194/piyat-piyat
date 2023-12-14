@@ -69,7 +69,7 @@
     <div class="grid grid-cols-2 gap-4 pt-10 px-4">
         <div
             v-for="player in game.players"
-            class="bg-white p-4 border-2 rounded shadow"
+            class="2xl:col-span-1 col-span-2 bg-white p-4 border-2 rounded shadow"
         >
             <div class="flex justify-between">
                 <h2 class="text-xl font-semibold mb-2">{{ player.name }}</h2>
@@ -78,7 +78,7 @@
                 <h2 v-if="!game.isShuffling && !game.isDealingCards" class="text-xl font-semibold mb-2">{{ Hand.evaluate(player.hand.head, player.hand.body, player.hand.tail).name }}</h2>
             </div>
             <div
-                class="mt-4 bg-gray-300 p-4 rounded shadow"
+                class="mt-4 bg-gray-300 p-4 rounded shadow min-w-150"
                 :class="{'bg-red-400': player.hasCrackHand, 'bg-green-400': player.isWinner}"
             >
                 <div class="flex flex-wrap">
@@ -144,6 +144,13 @@
 <!--                    <div class="flex items-center justify-center p-4 w-24 h-32 text-center">-->
 <!--                        {{ player.points.body }}-->
 <!--                    </div>-->
+                    <div class="relative">
+                        <div class="absolute -bottom-3 left-5">
+                            <button @click="game.swapBodyTail(player.id)" class="text-2xl">
+                                <i class="fas fa-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex flex-wrap">
                     <div class="bg-gray-800 text-white flex items-center justify-center border border-gray-300 rounded-md shadow-md p-4 w-32 h-32 text-center">

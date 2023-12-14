@@ -99,6 +99,10 @@ class Player {
         return null;
     }
 
+    swapBodyTail() {
+        [this.hand.body, this.hand.tail] = [this.hand.tail, this.hand.body]
+    }
+
     serialize() {
         return {
             id: this.id,
@@ -267,6 +271,13 @@ class Game {
         // Swap the positions of the cards between two sections
         owner1.hand[section1][index1] = sectionArray2[index2]
         owner2.hand[section2][index2] = card1
+
+        this.saveToLocalStorage()
+    }
+
+    swapBodyTail(playerId) {
+        const player = this.findPlayer(playerId)
+        player.swapBodyTail()
 
         this.saveToLocalStorage()
     }
